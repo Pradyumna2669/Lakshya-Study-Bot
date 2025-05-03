@@ -68,7 +68,6 @@ class ExamCountdown(commands.Cog):
         exam_date="Exam date in YYYY-MM-DD format",
         channel="Voice channel to display the countdown"
     )
-    @commands.has_permissions(administrator=True)
     async def set_exam_countdown(
         self,
         interaction: discord.Interaction,
@@ -77,6 +76,15 @@ class ExamCountdown(commands.Cog):
         channel: discord.VoiceChannel
     ):
         try:
+            user = interaction.user
+            
+            if not user.guild_permissions.administrator:
+                await interaction.response.send_message(
+                    "You need administrator permission to use this command.",
+                    ephemeral=True
+                )
+                return
+                
             # Validate date
             date_obj = datetime.strptime(exam_date, "%Y-%m-%d").date()
             await self.db.add_exam_countdown(interaction.guild.id, exam_name, exam_date, channel.id)
@@ -104,7 +112,6 @@ class ExamCountdown(commands.Cog):
 
     @app_commands.command(name="remove_exam_countdown", description="Remove exam countdown from a voice channel")
     @app_commands.describe(channel="Voice channel to remove countdown from")
-    @commands.has_permissions(administrator=True)
     async def remove_exam_countdown(
         self,
         interaction: discord.Interaction,
@@ -113,7 +120,15 @@ class ExamCountdown(commands.Cog):
         try:
             guild_id = interaction.guild.id
             channel_id = channel.id
+            user = interaction.user
             
+            if not user.guild_permissions.administrator:
+                await interaction.response.send_message(
+                    "You need administrator permission to use this command.",
+                    ephemeral=True
+                )
+                return
+
             # Get all exams for this guild
             data = await self.db.get_all_exam_countdowns()
             channel_exams = [

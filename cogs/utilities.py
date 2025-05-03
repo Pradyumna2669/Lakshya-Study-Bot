@@ -5,7 +5,9 @@ from core.bot import StoicBot
 import platform
 import psutil
 import time
+import logging
 
+logger = logging.getLogger(__name__)
 
 class Utilities(commands.Cog):
     def __init__(self, bot: StoicBot):
@@ -20,6 +22,18 @@ class Utilities(commands.Cog):
         )
         embed.set_thumbnail(url=self.bot.user.avatar.url if self.bot.user.avatar else None)
         
+        # New Study Tracking Section
+        study_commands = (
+            "⏱️ **Study Tracking**\n"
+            "> `/start [duration]` - Start study session (default 60 mins)\n"
+            "> `/status` - Check session status & controls\n"
+            "> `/leaderboard` - Daily study rankings\n"
+            "> `/summary [days]` - Past study stats\n"
+            "> `/stats` - Personal study analytics\n"
+        )
+        embed.add_field(name="📚 Study Sessions", value=study_commands, inline=False)
+
+        # Moderation + New Content Moderation
         mod_commands = (
             "🔧 **Moderation**\n"
             "> `/mute @user [reason]` - Silence rule breakers\n"
@@ -29,9 +43,17 @@ class Utilities(commands.Cog):
             "> `/del_warn @user [count]` - Remove warnings\n"
             "> `/purge [count]` - Delete recent messages\n"
             "> `/showconfig` - Show current moderation config\n"
+            "\n"
+            "🛡️ **Content Moderation**\n"
+            "> `/add_nsfw_word [keyword]` - Add an NSFW keyword (Mod)\n"
+            "> `/remove_nsfw_word [keyword]` - Remove an NSFW keyword (Mod)\n"
+            "> `/list_nsfw_words` - List all NSFW keywords (Mod)\n"
+            "> `/toggle_content_moderation [nsfw] [promo]` - Toggle NSFW/Promotion detection (Mod)\n"
+            "> `/moderation_status` - View moderation settings (Mod)"
         )
         embed.add_field(name="🛠️ Staff Tools", value=mod_commands, inline=False)
 
+        # Voice Logging
         voicelog_commands = (
             "🎙️ **Voice Logging**\n"
             "> `!voicelog enable [channel]` - Enable VC logging (uses current channel if not specified)\n"
@@ -40,6 +62,7 @@ class Utilities(commands.Cog):
         )
         embed.add_field(name="🎧 Voice Channel Tools", value=voicelog_commands, inline=False)
 
+        # Ticket System
         ticket_commands = (
             "🎟️ **Ticket System**\n"
             "> Use the dropdown in <#1308361779126210621> to:\n"
@@ -49,17 +72,19 @@ class Utilities(commands.Cog):
         )
         embed.add_field(name="💬 Support System", value=ticket_commands, inline=False)
 
-        study_commands = (
+        # Study Tools
+        study_tools = (
             "📖 **Study Features**\n"
             "> `!rule` - View study room guidelines\n"
             "> `!pingvc` - Notify VC members\n"
             "> `/monitor_vc` - Manage cam monitoring\n"
-            "> `/set_exam_countdown` - Set a countdown in a VC for an upcoming exam\n"
-            "> `/remove_exam_countdown` - Remove an active exam countdown\n"
-            "> `/send_dm` - Send an embedded DM to a user\n"
+            "> `/set_exam_countdown` - Set exam countdown\n"
+            "> `/remove_exam_countdown` - Remove countdown\n"
+            "> `/send_dm` - Send embedded DM to user\n"
         )
-        embed.add_field(name="🧠 Study Tools", value=study_commands, inline=False)
+        embed.add_field(name="🧠 Study Tools", value=study_tools, inline=False)
 
+        # Sticky Messages
         sticky_commands = (
             "📌 **Sticky Messages**\n"
             "> `/set_sticky` - Set a sticky embed using modal\n"
@@ -105,39 +130,72 @@ class Utilities(commands.Cog):
             await ctx.send("❌ You don't have permission to use this command.")
 
     # Hybrid command with dual permission checks
-    @commands.hybrid_command(name="send_dm", description="Send a custom embedded DM to a user.")
-    @app_commands.describe(user="The user to DM", message="The message to send (as embed)")
+    @commands.hybrid_command(name="send_dm", description="📨 Send a custom embedded direct message to a user")
+    @app_commands.describe(
+        user="The user to message",
+        message="The content of your message"
+    )
     @commands.has_permissions(manage_messages=True)
-    @app_commands.checks.has_permissions(manage_messages=True)
-    async def send_dm(self, ctx: commands.Context, user: User, message: str):
-        """Send an embedded DM to a user (Hybrid command)"""
+    async def send_dm(self, ctx: commands.Context, user: discord.User, message: str):
+        """Send an elegant embedded DM to a user with server branding"""
         try:
-            # Create embed
-            embed = Embed(
+            # Create main embed for recipient
+            embed = discord.Embed(
                 title="📬 Message from Server Staff",
                 description=message,
-                color=discord.Color.orange()
+                color=discord.Color.gold(),
+                timestamp=ctx.message.created_at
             )
-            embed.set_footer(
-                text=f"Sent by {ctx.author}",
-                icon_url=ctx.author.display_avatar.url
+            embed.set_author(
+                name=ctx.guild.name,
+                icon_url=ctx.guild.icon.url if ctx.guild.icon else None
             )
+            embed.set_footer(text="Happy Learning", icon_url=self.bot.user.display_avatar.url)
 
-            # Send DM and confirm
+            # Send DM
             await user.send(embed=embed)
-            await self.bot.log_to_mod(ctx, embed=embed)
-            
-            # Context-aware response
-            response = f"✅ Successfully sent DM to {user.mention}"
-            await ctx.send(response, ephemeral=bool(ctx.interaction))
+
+            # Create log embed
+            log_embed = discord.Embed(
+                title="📨 DM Sent Successfully",
+                color=discord.Color.green(),
+                timestamp=ctx.message.created_at
+            )
+            log_embed.add_field(name="Recipient", value=f"{user.mention}\n`{user.id}`", inline=True)
+            log_embed.add_field(name="Content", value=message, inline=False)
+            log_embed.add_field(name="Sent By", value=f"{ctx.author.mention}\n`{ctx.author.id}`", inline=True)
+            log_embed.set_thumbnail(url=user.display_avatar.url)
+
+            # Send confirmation and log
+            confirmation = f"✅ Successfully sent DM to {user.mention}"
+            await ctx.send(confirmation, ephemeral=bool(ctx.interaction))
+            await self.bot.log_to_mod(ctx.interaction, embed=log_embed)
 
         except discord.Forbidden:
-            response = "❌ Cannot send DM (user might have DMs disabled)"
-            await ctx.send(response, ephemeral=bool(ctx.interaction))
+            error_embed = discord.Embed(
+                title="❌ DM Failed",
+                description="This user has DMs disabled or blocked the bot",
+                color=discord.Color.red()
+            )
+            error_embed.add_field(name="User", value=user.mention)
+            await ctx.send(embed=error_embed, ephemeral=bool(ctx.interaction))
+            await self.bot.log_to_support(error_embed)
+
         except Exception as e:
-            print(f"[Send DM Error] {e}")
-            response = "⚠️ Failed to send DM due to an error"
-            await ctx.send(response, ephemeral=bool(ctx.interaction))
+            logger.error(f"DM Error: {str(e)}", exc_info=True)
+            error_embed = discord.Embed(
+                title="⚠️ Unexpected Error",
+                description="Failed to send DM",
+                color=discord.Color.orange()
+            )
+            error_embed.add_field(name="Error Details", value=f"```{str(e)[:1000]}```")
+            await ctx.send(embed=error_embed, ephemeral=bool(ctx.interaction))
             
+    @commands.command(name="sync")
+    @commands.is_owner()
+    async def sync_commands(self, ctx):
+        await self.bot.tree.sync()
+        await ctx.send("✅ Slash commands synced globally.")
+        
 async def setup(bot: StoicBot):
     await bot.add_cog(Utilities(bot))

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket #{{ ticket_number }} - {{ server_name }}</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <style>
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            background-color: var(--bs-dark);
+        }
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 0.75rem;
+        }
+        .timestamp {
+            margin-left: auto;
+            color: var(--bs-secondary);
+            font-size: 0.875rem;
+        }
+        .username {
+            font-weight: bold;
+            color: var(--bs-primary);
+        }
+        .user-id {
+            font-size: 0.75rem;
+            color: var(--bs-secondary);
+            margin-left: 0.5rem;
+        }
+        .attachment {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background-color: var(--bs-dark);
+            border-radius: 0.25rem;
+        }
+        .attachment-image {
+            max-width: 400px;
+            max-height: 300px;
+            border-radius: 0.25rem;
+        }
+        .ticket-info {
+            background-color: var(--bs-dark);
+            padding: 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 1.5rem;
+        }
+        .embed {
+            border-left: 4px solid var(--bs-primary);
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 0.25rem;
+        }
+        .embed-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .embed-field {
+            margin-top: 0.5rem;
+        }
+        .embed-field-name {
+            font-weight: bold;
+        }
+        .reaction {
+            display: inline-block;
+            margin-right: 0.5rem;
+            background-color: rgba(255,255,255,0.05);
+            padding: 0.2rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+        }
+        .reactions-container {
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <h2 class="mb-4">Ticket #{{ ticket_number }} Transcript</h2>
+                
+                <div class="ticket-info">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Server:</strong> {{ server_name }} (ID: {{ server_id }})</p>
+                            <p><strong>Ticket Type:</strong> {{ ticket_type }}</p>
+                            <p><strong>Created by:</strong> {{ creator_name }} (ID: {{ creator_id }})</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Channel:</strong> #{{ channel_name }}</p>
+                            <p><strong>Claimed by:</strong> {{ claimed_by }}</p>
+                            <p><strong>Generated at:</strong> {{ generated_at }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <h4 class="mb-3">Messages</h4>
+                {% if not messages %}
+                    <div class="alert alert-info">No messages found in this ticket.</div>
+                {% endif %}
+                
+                {% for message in messages %}
+                <div class="message">
+                    <div class="message-header">
+                        <img src="{{ message.author.avatar_url }}" alt="Avatar" class="avatar">
+                        <div>
+                            <span class="username">{{ message.author.name }}</span>
+                            <span class="user-id">(ID: {{ message.author.id }})</span>
+                        </div>
+                        <span class="timestamp">{{ message.formatted_timestamp }}</span>
+                    </div>
+                    
+                    {% if message.content %}
+                    <div class="message-content">
+                        {{ message.clean_content|replace('\n', '<br>')|safe }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if message.embeds %}
+                    <div class="embeds">
+                        {% for embed in message.embeds %}
+                        <div class="embed">
+                            {% if embed.title %}
+                            <div class="embed-title">{{ embed.title }}</div>
+                            {% endif %}
+                            
+                            {% if embed.description %}
+                            <div class="embed-description">{{ embed.description }}</div>
+                            {% endif %}
+                            
+                            {% if embed.fields %}
+                            <div class="embed-fields">
+                                {% for field in embed.fields %}
+                                <div class="embed-field">
+                                    <div class="embed-field-name">{{ field.name }}</div>
+                                    <div class="embed-field-value">{{ field.value }}</div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if embed.footer %}
+                            <div class="embed-footer">
+                                <small>{{ embed.footer }}</small>
+                                {% if embed.timestamp %}
+                                <small class="ms-2">{{ embed.timestamp }}</small>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if message.attachments %}
+                    <div class="attachments">
+                        {% for attachment in message.attachments %}
+                        <div class="attachment">
+                            {% if attachment.is_image %}
+                            <img src="{{ attachment.url }}" class="attachment-image" alt="{{ attachment.name }}">
+                            {% else %}
+                            <a href="{{ attachment.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-download"></i> {{ attachment.name }}
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if message.reactions %}
+                    <div class="reactions-container">
+                        {% for reaction in message.reactions %}
+                        <span class="reaction">{{ reaction.emoji }} {{ reaction.count }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
+                <div class="mt-4 text-center">
+                    <small class="text-muted">This transcript was automatically generated by the Lakshya Bot</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

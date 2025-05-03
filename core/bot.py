@@ -7,6 +7,8 @@ import asyncio
 from typing import Union
 from discord.ext import commands
 from core.database_handler import DatabaseHandler
+from core.ticket_db import setup_database
+from cogs.utils import log_to_dev_channel
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +28,8 @@ class StoicBot(commands.Bot):
             chunk_guilds_at_startup=False
         )
 
+        setup_database()
+
         self.db_handler = None
 
         self.nsfw_keywords = [
@@ -44,7 +48,7 @@ class StoicBot(commands.Bot):
             self.db_handler = DatabaseHandler()
             await self.db_handler.initialize()
             await self.db_handler.connect()
-
+        
             await self.load_extensions()
             await self.tree.sync()
 
@@ -65,7 +69,9 @@ class StoicBot(commands.Bot):
             'cogs.management',
             'cogs.voicelogs',
             'cogs.examcountdown',
-            'cogs.sticky'
+            'cogs.study_session',
+            'cogs.sticky',
+            'cogs.content_moderation'
         ]
         for cog in cogs:
             try:
@@ -139,7 +145,11 @@ class StoicBot(commands.Bot):
     
     async def on_ready(self):
         print(f"[INFO] Bot is online as {self.user} (ID: {self.user.id})")
-
+        await log_to_dev_channel(
+                self,
+                f"Bot is online as {self.user} (ID: {self.user.id})",
+                "INFO"
+            )
         try:
             await self.log_to_support(
                 f"✅ **Lakshya Bot is now online!**\n"
@@ -149,6 +159,7 @@ class StoicBot(commands.Bot):
             )
         except Exception as e:
             print(f"[ERROR] Failed to log startup message: {e}")
+            self.log_to_support(f"[ERROR] Failed to log startup message: {e}")
 
     async def close(self):
         await self.db_handler.close()

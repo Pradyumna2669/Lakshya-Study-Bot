@@ -99,7 +99,7 @@ class Sticky(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         logging.info("Sticky cog ready!")
-        self.bot.log_to_support("Sticky Cog is ready!")
+        await self.bot.log_to_support("Sticky Cog is ready!")
 
     async def _handle_sticky_refresh(self, channel: discord.TextChannel, sticky: dict):
         """Centralized method to handle sticky refresh logic"""

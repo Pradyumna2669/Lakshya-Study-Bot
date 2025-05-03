@@ -1,0 +1,7 @@
+*.env
+shrujan-project/
+data/
+*.db
+backuup.py
+cogs/__pycache__/
+test.py
